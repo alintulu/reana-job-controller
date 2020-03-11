@@ -101,7 +101,7 @@ PROXY_CERT_CACHE_LOCATION = '/proxy_cache/'
 """Directory of proxy certificate cache, shared between job & PROXY container.
 """
 
-PROXY_CERT_CACHE_FILENAME = 'proxy_{}'
+PROXY_CERT_CACHE_FILENAME = 'x509up_u131816'
 """Name of the proxy certificate cache file."""
 
 IMAGE_PULL_SECRETS = os.getenv('IMAGE_PULL_SECRETS', '').split(',')

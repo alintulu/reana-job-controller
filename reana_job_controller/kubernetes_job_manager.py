@@ -43,7 +43,7 @@ class KubernetesJobManager(JobManager):
     def __init__(self, docker_img=None, cmd=None, prettified_cmd=None,
                  env_vars=None, workflow_uuid=None, workflow_workspace=None,
                  cvmfs_mounts='false', shared_file_system=False, job_name=None,
-                 kerberos=False, kubernetes_uid=None, unpacked_img=False):
+                 kerberos=False, kubernetes_uid=None, unpacked_img=False, proxy=False):
         """Instanciate kubernetes job manager.
 
         :param docker_img: Docker image.
@@ -66,6 +66,8 @@ class KubernetesJobManager(JobManager):
         :type job_name: str
         :param kerberos: Decides if kerberos should be provided for job.
         :type kerberos: bool
+        :param proxy: Decides if a grid proxy should be provided for job.
+        :type proxy: bool
         :param kubernetes_uid: User ID for job container.
         :type kubernetes_uid: int
         """
@@ -81,6 +83,7 @@ class KubernetesJobManager(JobManager):
         self.cvmfs_mounts = cvmfs_mounts
         self.shared_file_system = shared_file_system
         self.kerberos = kerberos
+        self.proxy = proxy
         self.set_user_id(kubernetes_uid)
 
     @JobManager.execution_hook
@@ -172,6 +175,9 @@ class KubernetesJobManager(JobManager):
 
         if self.kerberos:
             self._add_krb5_init_container(secrets_volume_mount)
+
+        if self.proxy:
+            self._add_proxy_init_container(secrets_volume_mount)
 
         backend_job_id = self._submit()
         return backend_job_id
@@ -313,6 +319,55 @@ class KubernetesJobManager(JobManager):
                            )})
         self.job['spec']['template']['spec']['initContainers'].append(
             krb5_container)
+
+    def _add_proxy_init_container(self, secrets_volume_mount):
+        """Add  sidecar container for a job."""
+        ticket_cache_volume = {
+            'name': 'proxy-cache',
+            'emptyDir': {}
+        }
+        volume_mounts = [
+            {
+                'name': ticket_cache_volume['name'],
+                'mountPath': current_app.config['PROXY_CERT_CACHE_LOCATION']
+            }
+        ]
+
+        proxy_cert = os.environ.get('CERN_PROXYCERT')
+        proxy_key = os.environ.get('CERN_PROXYKEY')
+        proxy_pass = os.environ.get('CERN_PROXYPASS')
+
+        proxy_container = {
+            'image': current_app.config['PROXY_CONTAINER_IMAGE'],
+            'command': ['/bin/bash'],
+            'args': ['-c', "echo 'TTo/RK6aF2CE(MrgRrDAVEMm' | voms-proxy-init \
+                     --voms cms --key /etc/reana/secrets/userkey.pem \
+                     --cert /etc/reana/secrets/usercert.pem --out /proxy_cache/x509up_u131816 --pwstdin; \
+                     echo bye > /proxy_cache/bye.txt"],
+            'name': current_app.config['PROXY_CONTAINER_NAME'],
+            'imagePullPolicy': 'IfNotPresent',
+            'volumeMounts': [secrets_volume_mount] + volume_mounts,
+            'security_context': client.V1PodSecurityContext(
+                run_as_group=WORKFLOW_RUNTIME_USER_GID,
+                run_as_user=self.kubernetes_uid)
+        }
+
+        self.job['spec']['template']['spec']['volumes'].extend(
+            [ticket_cache_volume])
+        self.job['spec']['template']['spec']['containers'][0][
+            'volumeMounts'].extend(volume_mounts)
+
+        '''
+        self.job['spec']['template']['spec']['containers'][0][
+            'env'].append({'name': 'X509_USER_PROXY',
+                           'value': os.path.join(
+                               current_app.config['PROXY_CERT_CACHE_LOCATION'],
+                               current_app.config['PROXY_CERT_CACHE_FILENAME']
+                           )})
+        '''
+
+        self.job['spec']['template']['spec']['initContainers'].append(
+            proxy_container)
 
     def set_user_id(self, kubernetes_uid):
         """Set user id for job pods. UIDs < 100 are refused for security."""
