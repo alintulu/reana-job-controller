@@ -71,6 +71,9 @@
           "default": "",
           "type": "string"
         },
+        "proxy": {
+          "type": "boolean"
+        },
         "shared_file_system": {
           "default": true,
           "type": "boolean"
