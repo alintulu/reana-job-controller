@@ -90,5 +90,19 @@ KRB5_CONFIGMAP_NAME = 'reana-krb5-conf'
 reana_cluster/backends/kubernetes/templates/configmaps/kerberos.yaml.
 """
 
+PROXY_CONTAINER_IMAGE = os.getenv('PROXY_CONTAINER_IMAGE',
+                                 'grid-proxy:test')
+"""Default docker image of PROXY sidecar container."""
+
+PROXY_CONTAINER_NAME = 'proxy'
+"""Name of PROXY sidecar container."""
+
+PROXY_CERT_CACHE_LOCATION = '/proxy_cache/'
+"""Directory of proxy certificate cache, shared between job & PROXY container.
+"""
+
+PROXY_CERT_CACHE_FILENAME = 'proxy_{}'
+"""Name of the proxy certificate cache file."""
+
 IMAGE_PULL_SECRETS = os.getenv('IMAGE_PULL_SECRETS', '').split(',')
 """Docker image pull secrets which allow the usage of private images."""
