@@ -41,7 +41,9 @@ JOB_MONITORS = {
 DEFAULT_COMPUTE_BACKEND = 'kubernetes'
 """Default job compute backend."""
 
-JOB_HOSTPATH_MOUNTS = []
+JOB_HOSTPATH_MOUNTS = [
+ ('cvmfs', '/cvmfs'),
+]
 """List of tuples composed of name and path to create hostPath's inside jobs.
 
 This configuration should be used only when one knows for sure that the
@@ -101,7 +103,7 @@ PROXY_CERT_CACHE_LOCATION = '/proxy_cache/'
 """Directory of proxy certificate cache, shared between job & PROXY container.
 """
 
-PROXY_CERT_CACHE_FILENAME = 'x509up_u131816'
+PROXY_CERT_CACHE_FILENAME = 'x509up_proxy'
 """Name of the proxy certificate cache file."""
 
 IMAGE_PULL_SECRETS = os.getenv('IMAGE_PULL_SECRETS', '').split(',')
