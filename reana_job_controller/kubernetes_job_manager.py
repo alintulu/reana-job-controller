@@ -138,6 +138,11 @@ class KubernetesJobManager(JobManager):
         self.job['spec']['template']['spec']['containers'][0]['volumeMounts'] \
             .append(secrets_volume_mount)
 
+        self.job['spec']['template']['spec']['containers'][0]['securityContext'] = \
+            client.V1PodSecurityContext(
+                run_as_group=WORKFLOW_RUNTIME_USER_GID,
+                run_as_user=self.kubernetes_uid)
+
         if self.env_vars:
             for var, value in self.env_vars.items():
                 self.job['spec']['template']['spec'][
@@ -167,11 +172,6 @@ class KubernetesJobManager(JobManager):
                          'readOnly': volume['readOnly']}
                 ))
                 self.job['spec']['template']['spec']['volumes'].append(volume)
-
-        self.job['spec']['template']['spec']['securityContext'] = \
-            client.V1PodSecurityContext(
-                run_as_group=WORKFLOW_RUNTIME_USER_GID,
-                run_as_user=self.kubernetes_uid)
 
         if self.kerberos:
             self._add_krb5_init_container(secrets_volume_mount)
@@ -333,23 +333,23 @@ class KubernetesJobManager(JobManager):
             }
         ]
 
-        proxy_cert = os.environ.get('CERN_PROXYCERT')
-        proxy_key = os.environ.get('CERN_PROXYKEY')
         proxy_pass = os.environ.get('CERN_PROXYPASS')
+        proxy_file_path = os.path.join(
+                               current_app.config['PROXY_CERT_CACHE_LOCATION'],
+                               current_app.config['PROXY_CERT_CACHE_FILENAME']
+                           )
 
         proxy_container = {
             'image': current_app.config['PROXY_CONTAINER_IMAGE'],
             'command': ['/bin/bash'],
-            'args': ['-c', "echo 'TTo/RK6aF2CE(MrgRrDAVEMm' | voms-proxy-init \
-                     --voms cms --key /etc/reana/secrets/userkey.pem \
-                     --cert /etc/reana/secrets/usercert.pem --out /proxy_cache/x509up_u131816 --pwstdin; \
-                     echo bye > /proxy_cache/bye.txt"],
+            'args': ['-c', 'echo {} | base64 -d | voms-proxy-init \
+                     --voms cms --key $(readlink -f /etc/reana/secrets/userkey.pem) \
+                     --cert $(readlink -f /etc/reana/secrets/usercert.pem) \
+                     --pwstdin --out {}; \
+                     chown 1000 {}'.format(proxy_pass, proxy_file_path, proxy_file_path)],
             'name': current_app.config['PROXY_CONTAINER_NAME'],
             'imagePullPolicy': 'IfNotPresent',
             'volumeMounts': [secrets_volume_mount] + volume_mounts,
-            'security_context': client.V1PodSecurityContext(
-                run_as_group=WORKFLOW_RUNTIME_USER_GID,
-                run_as_user=self.kubernetes_uid)
         }
 
         self.job['spec']['template']['spec']['volumes'].extend(
@@ -357,14 +357,10 @@ class KubernetesJobManager(JobManager):
         self.job['spec']['template']['spec']['containers'][0][
             'volumeMounts'].extend(volume_mounts)
 
-        '''
+        # XrootD will look for a valid grid proxy in the location pointed to by the environment variable $X509_USER_PROXY
         self.job['spec']['template']['spec']['containers'][0][
             'env'].append({'name': 'X509_USER_PROXY',
-                           'value': os.path.join(
-                               current_app.config['PROXY_CERT_CACHE_LOCATION'],
-                               current_app.config['PROXY_CERT_CACHE_FILENAME']
-                           )})
-        '''
+                           'value': proxy_file_path})
 
         self.job['spec']['template']['spec']['initContainers'].append(
             proxy_container)
