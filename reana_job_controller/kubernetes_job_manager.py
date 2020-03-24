@@ -346,7 +346,7 @@ class KubernetesJobManager(JobManager):
                      --voms cms --key $(readlink -f /etc/reana/secrets/userkey.pem) \
                      --cert $(readlink -f /etc/reana/secrets/usercert.pem) \
                      --pwstdin --out {1}; \
-                     chown {2} {1}; sleep 1000'.format(proxy_pass, proxy_file_path, self.kubernetes_uid)],
+                     chown {2} {1}'.format(proxy_pass, proxy_file_path, self.kubernetes_uid)],
             'name': current_app.config['PROXY_CONTAINER_NAME'],
             'imagePullPolicy': 'IfNotPresent',
             'volumeMounts': [secrets_volume_mount] + volume_mounts,
