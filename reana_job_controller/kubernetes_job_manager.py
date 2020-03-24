@@ -66,10 +66,10 @@ class KubernetesJobManager(JobManager):
         :type job_name: str
         :param kerberos: Decides if kerberos should be provided for job.
         :type kerberos: bool
-        :param proxy: Decides if a grid proxy should be provided for job.
-        :type proxy: bool
         :param kubernetes_uid: User ID for job container.
         :type kubernetes_uid: int
+        :param proxy: Decides if a grid proxy should be provided for job.
+        :type proxy: bool
         """
         super(KubernetesJobManager, self).__init__(
             docker_img=docker_img,
@@ -342,11 +342,11 @@ class KubernetesJobManager(JobManager):
         proxy_container = {
             'image': current_app.config['PROXY_CONTAINER_IMAGE'],
             'command': ['/bin/bash'],
-            'args': ['-c', 'echo {} | base64 -d | voms-proxy-init \
+            'args': ['-c', 'echo {0} | base64 -d | voms-proxy-init \
                      --voms cms --key $(readlink -f /etc/reana/secrets/userkey.pem) \
                      --cert $(readlink -f /etc/reana/secrets/usercert.pem) \
-                     --pwstdin --out {}; \
-                     chown 1000 {}'.format(proxy_pass, proxy_file_path, proxy_file_path)],
+                     --pwstdin --out {1}; \
+                     chown {2} {1}; sleep 1000'.format(proxy_pass, proxy_file_path, self.kubernetes_uid)],
             'name': current_app.config['PROXY_CONTAINER_NAME'],
             'imagePullPolicy': 'IfNotPresent',
             'volumeMounts': [secrets_volume_mount] + volume_mounts,
