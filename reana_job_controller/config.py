@@ -46,7 +46,9 @@ JOB_MONITORS = {
 DEFAULT_COMPUTE_BACKEND = 'kubernetes'
 """Default job compute backend."""
 
-JOB_HOSTPATH_MOUNTS = []
+JOB_HOSTPATH_MOUNTS = [
+ ('cvmfs', '/cvmfs'),
+]
 """List of tuples composed of name and path to create hostPath's inside jobs.
 
 This configuration should be used only when one knows for sure that the
