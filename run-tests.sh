@@ -11,7 +11,7 @@ DOCKER_IMAGE_NAME=reanahub/$COMPONENT_NAME
 PLATFORM="$(python -c 'import platform; print(platform.system())')"
 
 RUN_TESTS="pydocstyle reana_job_controller &&
-isort -rc -c -df **/*.py &&
+black --check . &&
 check-manifest --ignore '.travis-*' &&
 FLASK_APP=reana_job_controller/app.py flask openapi create openapi.json  &&
 diff -q openapi.json docs/openapi.json &&
@@ -27,6 +27,7 @@ Darwin*)
     docker build -t $DOCKER_IMAGE_NAME .
     RUN_TESTS_INSIDE_DOCKER="
     cd $COMPONENT_NAME &&
+    apt update &&
     apt install git -y && # Needed by check-manifest
     pip install --force-reinstall ../reana-commons ../reana-db ../pytest-reana &&
     pip install .[all] && # Install test dependencies

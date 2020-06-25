@@ -1,6 +1,25 @@
 Changes
 =======
 
+Version master (UNRELEASED)
+---------------------------
+
+- Adds VOMS proxy support as a new authentication method.
+- Supports running unpacked Docker images from CVMFS on HTCondor jobs.
+- Supports pulling private images using image pull secrets.
+- Fixes HTCondor job submission retry.
+- Improves error reporting on Docker image related failures.
+- Prefixes user workflows with the configured REANA prefix.
+- Switches CVMFS to be read-only mount.
+- Instantiates jobs in the configured runtime namespace.
+- Enables running tests locally on MacOS.
+- Adds Black formatter support.
+
+Version 0.6.1 (2020-05-25)
+--------------------------
+
+- Upgrades REANA-Commons package using latest Kubernetes Python client version.
+
 Version 0.6.0 (2019-12-20)
 --------------------------
 
