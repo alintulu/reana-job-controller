@@ -13,9 +13,7 @@ import logging
 import os
 import threading
 from shutil import copyfile
-
 import classad
-import htcondor
 from flask import current_app
 from reana_db.database import Session
 from reana_db.models import Workflow
@@ -95,6 +93,9 @@ class HTCondorJobManagerCERN(JobManager):
         """Execute / submit a job with HTCondor."""
         os.chdir(self.workflow_workspace)
         initialize_krb5_token(workflow_uuid=self.workflow_uuid)
+
+        import htcondor
+
         job_ad = classad.ClassAd()
         job_ad["JobDescription"] = (
             self.workflow.get_full_workflow_name() + "_" + self.job_name
@@ -127,8 +128,12 @@ class HTCondorJobManagerCERN(JobManager):
         job_ad["TransferOutput"] = "."
         job_ad["PeriodicRelease"] = classad.ExprTree("(HoldReasonCode == 35)")
         job_ad["MaxRunTime"] = 3600
+
+        os.system("echo job_ad: '{}'".format(job_ad))
+
         future = current_app.htcondor_executor.submit(self._submit, job_ad)
         clusterid = future.result()
+        os.system("echo clusterid: '{}'".format(clusterid))
         return clusterid
 
     def _replace_absolute_paths_with_relative(self, cmd):
@@ -233,30 +238,40 @@ class HTCondorJobManagerCERN(JobManager):
     @retry(stop_max_attempt_number=MAX_NUM_RETRIES, wait_fixed=RETRY_WAIT_TIME)
     def _submit(self, job_ad):
         """Execute submission transaction."""
+        os.system("echo submitting workflow")
         ads = []
         schedd = HTCondorJobManagerCERN._get_schedd()
         logging.info("Submiting job - {}".format(job_ad))
+        os.system("echo submitting job '{}'".format(job_ad))
         clusterid = schedd.submit(job_ad, 1, True, ads)
+        os.system("echo submitted clusterid '{}' with ads '{}'".format(clusterid, ads))
         HTCondorJobManagerCERN._spool_input(ads)
         return clusterid
 
     @retry(stop_max_attempt_number=MAX_NUM_RETRIES, wait_fixed=RETRY_WAIT_TIME)
     def _spool_input(ads):
+        os.system("echo spooling inputs")
         schedd = HTCondorJobManagerCERN._get_schedd()
         logging.info("Spooling job inputs - {}".format(ads))
         schedd.spool(ads)
 
     @retry(stop_max_attempt_number=MAX_NUM_RETRIES, wait_fixed=RETRY_WAIT_TIME)
     def _get_schedd():
+        import htcondor
+
         """Find and return the HTCondor schedd."""
+        os.system("echo getting schedd")
         schedd = getattr(thread_local, "MONITOR_THREAD_SCHEDD", None)
         if schedd is None:
             setattr(thread_local, "MONITOR_THREAD_SCHEDD", htcondor.Schedd())
+        os.system("echo got schedd '{}'".format(schedd))
         logging.info("Getting schedd: {}".format(thread_local.MONITOR_THREAD_SCHEDD))
         return thread_local.MONITOR_THREAD_SCHEDD
 
     def stop(backend_job_id):
         """Stop HTCondor job execution."""
+        import htcondor
+
         try:
             schedd = HTCondorJobManagerCERN._get_schedd()
             schedd.act(

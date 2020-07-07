@@ -20,14 +20,14 @@ RUN export DEBIAN_FRONTEND=noninteractive ;\
 ADD etc/krb5.conf /etc/krb5.conf
 
 
-ARG COMPUTE_BACKENDS=kubernetes
+ARG COMPUTE_BACKENDS=htcondorcern
 # CERN HTCondor part taken from https://gitlab.cern.ch/batch-team/condorsubmit
 RUN if echo "$COMPUTE_BACKENDS" | grep -q "htcondorcern"; then \
       export DEBIAN_FRONTEND=noninteractive ;\
       apt-get -yq install wget alien gnupg2 ;\
       wget -O ngbauth-submit.rpm http://linuxsoft.cern.ch/internal/repos/batch7-stable/x86_64/os/Packages/ngbauth-submit-0.23-1.el7.noarch.rpm; \
-      wget -O cernbatchsubmit.rpm http://linuxsoft.cern.ch/internal/repos/batch7-stable/x86_64/os/Packages/cernbatchsubmit-0.1.0-1.el7.x86_64.rpm; \
-      yes | alien -i cernbatchsubmit.rpm; \
+      wget -O myschedd.rpm http://linuxsoft.cern.ch/internal/repos/batch7-stable/x86_64/os/Packages/myschedd-1.5-1.el7.x86_64.rpm; \
+      yes | alien -i myschedd.rpm; \
       yes | alien -i ngbauth-submit.rpm; \
       wget -qO - http://research.cs.wisc.edu/htcondor/debian/HTCondor-Release.gpg.key | apt-key add -; \
       echo "deb https://research.cs.wisc.edu/htcondor/debian/8.9/buster buster contrib" >>/etc/apt/sources.list; \
@@ -42,7 +42,9 @@ RUN if echo "$COMPUTE_BACKENDS" | grep -q "slurmcern"; then \
                           --no-install-recommends; \
     fi
 
-ADD etc/cernsubmit.yaml /etc/condor/
+RUN mkdir -p /etc/myschedd 
+ADD etc/myschedd.yaml /etc/myschedd/
+
 ADD etc/10_cernsubmit.config /etc/condor/config.d/
 
 ADD etc/ngbauth-submit /etc/sysconfig/
@@ -77,5 +79,8 @@ EXPOSE 5000
 
 ENV COMPUTE_BACKENDS $COMPUTE_BACKENDS
 ENV FLASK_APP reana_job_controller/app.py
+
+#RUN useradd adlintul -g 0
+#USER adlintul
 
 CMD ["flask", "run", "-h", "0.0.0.0"]
