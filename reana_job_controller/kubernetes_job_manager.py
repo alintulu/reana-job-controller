@@ -185,6 +185,7 @@ class KubernetesJobManager(JobManager):
         ] = client.V1PodSecurityContext(
             run_as_group=WORKFLOW_RUNTIME_USER_GID, run_as_user=self.kubernetes_uid
         )
+
         if self.kerberos:
             self._add_krb5_init_container(secrets_volume_mount)
 
