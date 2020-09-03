@@ -62,6 +62,7 @@ class KubernetesJobManager(JobManager):
         kubernetes_uid=None,
         unpacked_img=False,
         voms_proxy=False,
+        htcondor_max_runtime=None,
     ):
         """Instanciate kubernetes job manager.
 

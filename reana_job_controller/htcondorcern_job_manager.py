@@ -50,6 +50,7 @@ class HTCondorJobManagerCERN(JobManager):
         kerberos=False,
         kubernetes_uid=None,
         unpacked_img=False,
+        htcondor_max_runtime=None,
     ):
         """Instanciate HTCondor job manager.
 

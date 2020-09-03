@@ -41,4 +41,4 @@ class JobRequest(Schema):
     voms_proxy = fields.Bool(required=False)
     kubernetes_uid = fields.Int(required=False)
     unpacked_img = fields.Bool(required=False)
-    htcondor_max_runtime = fields.Bool(required=False)
+    htcondor_max_runtime = fields.Int(required=False)
